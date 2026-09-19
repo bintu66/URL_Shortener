@@ -1,57 +1,38 @@
 # URL Shortener
 
-A simple URL shortener built with Go — paste a long URL and get a short one back!
+A minimal URL shortener written in Go. No dependencies outside the standard library.
 
-## What Does This Project Do?
-
-You know how some URLs are super long and ugly? Like:
+Turns this:
 
 ```
 https://www.example.com/products/category/electronics/items?id=12345&ref=homepage&utm_source=google
 ```
 
-This app turns it into something short like:
+into this:
 
 ```
 http://localhost:8080/aB3xZ7
 ```
 
-When someone clicks that short link, they get **redirected** (sent) to the original long URL automatically.
+## Requirements
 
----
+- Go 1.21+
 
-## How To Run It
-
-**Step 1:** Make sure you have [Go installed](https://go.dev/dl/).
-
-**Step 2:** Open your terminal, go to the project folder, and run:
+## Running
 
 ```bash
 go run cmd/server/main.go
 ```
 
-**Step 3:** You'll see this message:
+Server starts on `http://localhost:8080`.
 
-```
-Server is running on http://localhost:8080
-```
+## Usage
 
-**Step 4:** Open your browser and go to **http://localhost:8080** — you'll see the URL shortener form!
+### Web UI
 
----
+Go to `http://localhost:8080`, paste a URL, submit. You get back a short link that redirects to the original.
 
-## How To Use It
-
-###  From the Browser (the easy way)
-
-1. Open **http://localhost:8080** in your browser
-2. You'll see a page with a text box
-3. Paste any long URL (like `https://www.google.com`) and click **"Shorten it!"**
-4. You'll get a short URL — click it, and it will take you to the original site
-
-### 🛠 From Postman / curl (the API way)
-
-Send a POST request with JSON:
+### API
 
 ```bash
 curl -X POST http://localhost:8080/shorten \
@@ -59,122 +40,47 @@ curl -X POST http://localhost:8080/shorten \
   -d '{"url": "https://www.google.com"}'
 ```
 
-You'll get back:
-
 ```json
 {
   "short_url": "http://localhost:8080/aB3xZ7"
 }
 ```
 
-Visit that short URL in your browser, and it redirects you to Google!
-
----
-
-## Project Structure (What Each File Does)
-
-```
-url_shortener/
-├── cmd/
-│   └── server/
-│       └── main.go            ← Entry point. Starts the server and connects everything.
-│
-├── internal/
-│   ├── generator/
-│   │   └── code.go            ← Generates random short codes like "aB3xZ7"
-│   │
-│   ├── handler/
-│   │   └── url_handler.go     ← Handles browser/API requests (the "waiter" at a restaurant)
-│   │
-│   ├── model/
-│   │   └── url.go             ← Defines the shape of data (request and response)
-│   │
-│   ├── service/
-│   │   └── url_service.go     ← Business logic — the "brain" that connects handler and storage
-│   │
-│   └── storage/
-│       └── memory.go          ← Stores URLs in memory (like a dictionary/notebook)
-│
-├── go.mod                     ← Go module file (declares this project's name)
-├── README.md                  ← You're reading this!
-└── HOW_THE_CODE_WORKS.md      ← Deep explanation of Go syntax used in this project
-```
-
-### Why this folder structure?
-
-- **`cmd/`** = where executable programs live. Our server's `main.go` goes here.
-- **`internal/`** = private code that only this project can use. We split it into sub-folders by **responsibility**:
-  - **handler** = talks to the outside world (HTTP requests)
-  - **service** = contains the business logic
-  - **storage** = deals with saving/reading data
-  - **model** = defines data shapes (structs)
-  - **generator** = utility to create random codes
-
-This pattern is called **"separation of concerns"** — each part has ONE job.
-
----
-
-## How A Request Flows Through The Code
-
-Let's trace what happens when you shorten a URL:
-
-### Shortening a URL (you submit the form)
-
-```
-Browser                 main.go              handler              service            storage
-  │                       │                     │                    │                   │
-  │──POST /shorten───────>│                     │                    │                   │
-  │                       │──ShortenURL()──────>│                    │                   │
-  │                       │                     │──CreateShortURL()─>│                   │
-  │                       │                     │                    │──Generate(6)      │
-  │                       │                     │                    │  (makes "aB3xZ7") │
-  │                       │                     │                    │──Save("aB3xZ7",──>│
-  │                       │                     │                    │   "https://...")   │
-  │                       │                     │                    │<──done────────────│
-  │                       │                     │<──"aB3xZ7"────────│                   │
-  │<──HTML page with──────│                     │                    │                   │
-  │   short URL           │                     │                    │                   │
-```
-
-### Redirecting (someone clicks the short URL)
-
-```
-Browser                 main.go              handler              service            storage
-  │                       │                     │                    │                   │
-  │──GET /aB3xZ7─────────>│                     │                    │                   │
-  │                       │──RedirectURL()─────>│                    │                   │
-  │                       │                     │──GetOriginalURL()─>│                   │
-  │                       │                     │                    │──Get("aB3xZ7")───>│
-  │                       │                     │                    │<──"https://...",──│
-  │                       │                     │                    │    true           │
-  │                       │                     │<──"https://..."───│                   │
-  │<──302 Redirect to─────│                     │                    │                   │
-  │   https://...         │                     │                    │                   │
-```
-
----
+Hitting the short URL issues a 302 redirect to the original.
 
 ## API Routes
 
-| Method | Path       | What It Does                                |
-|--------|------------|---------------------------------------------|
-| GET    | `/`        | Shows the homepage with the URL form        |
-| POST   | `/shorten` | Shortens a URL (form or JSON)               |
-| GET    | `/{code}`  | Redirects to the original URL               |
-| GET    | `/health`  | Simple check — returns "Server is running"  |
+| Method | Path       | Description                          |
+|--------|------------|---------------------------------------|
+| GET    | `/`        | HTML form                             |
+| POST   | `/shorten` | Create a short URL (form or JSON)     |
+| GET    | `/{code}`  | Redirect to the original URL          |
+| GET    | `/health`  | Health check                          |
 
----
+## Project Layout
 
-## Important Notes
+```
+url_shortener/
+├── cmd/server/main.go          # entry point, wiring
+├── internal/
+│   ├── generator/code.go       # random short-code generation
+│   ├── handler/url_handler.go  # HTTP layer
+│   ├── model/url.go            # request/response types
+│   ├── service/url_service.go  # business logic
+│   └── storage/memory.go       # in-memory store
+├── go.mod
+└── HOW_THE_CODE_WORKS.md       # walkthrough of the Go syntax used here
+```
 
-- **Data is stored in memory** — when you stop the server, all shortened URLs are gone. This is fine for learning! In a real app, you'd use a database like PostgreSQL or Redis.
-- **This runs locally** — the short URLs only work on your computer (`localhost`). To make it available on the internet, you'd need to deploy it to a server.
-- **No duplicate checking** — if you shorten the same URL twice, you get two different short codes. A real app might check for duplicates.
+Standard handler → service → storage split. Handlers parse requests and write responses, the service owns the logic, storage is swappable behind an interface.
 
----
+## Limitations
 
-## Built With
+- **In-memory storage.** Everything is lost on restart. Swap `internal/storage` for a Postgres/Redis-backed implementation if you need persistence.
+- **No dedupe.** Shortening the same URL twice produces two different codes.
+- **Not collision-checked against a real keyspace long-term** — fine for a learning project, not for scale.
+- **localhost only.** Deploy behind a real domain + reverse proxy to use it outside your machine.
 
-- **Go (Golang)** — the programming language
-- **net/http** — Go's built-in HTTP server (no external frameworks needed!)
-- **encoding/json** — Go's built-in JSON parser
+## Stack
+
+Go, `net/http`, `encoding/json`. That's it.
