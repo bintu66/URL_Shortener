@@ -2,6 +2,7 @@
 
 A minimal URL shortener written in Go. No dependencies outside the standard library.
 
+For example:
 Turns this:
 
 ```
